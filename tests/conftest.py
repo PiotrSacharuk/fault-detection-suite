@@ -1,6 +1,6 @@
 import pytest
-from faults.base import FaultDetectionMode
-from faults.toogle import Toogle
+
+from faults.base import FaultDetectionMode, Toogle
 
 
 def pytest_addoption(parser):
