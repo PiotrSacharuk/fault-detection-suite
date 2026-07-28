@@ -19,4 +19,4 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies: [pytest>=8.0.0]
-        files: ^src/
+        pass_filenames: false
