@@ -1,6 +1,7 @@
 import pytest
 from faults.base import FaultDetectionMode, Toogle
 
+
 def test_toogle_initialization_and_validation():
     """
     Test the initialization and validation of the Toogle class.
@@ -19,6 +20,7 @@ def test_toogle_initialization_and_validation():
 
     with pytest.raises(ValueError):
         toogle.set_mode("invalid_mode")
+
 
 def test_automatic_mode_injection(toogle: Toogle):
     if toogle.is_fixed:

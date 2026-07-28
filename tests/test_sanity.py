@@ -1,5 +1,6 @@
 import sys
 
+
 def test_environment_sanity():
     """
     Test to ensure that the testing environment is set up correctly.

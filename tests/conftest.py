@@ -2,6 +2,7 @@ import pytest
 from faults.base import FaultDetectionMode
 from faults.toogle import Toogle
 
+
 def pytest_addoption(parser):
     """
     Add custom command-line options to pytest.
@@ -12,8 +13,9 @@ def pytest_addoption(parser):
         action="store",
         default="all",
         choices=["all", "fixed", "buggy"],
-        help="Specify the fault detection mode for the tests (default: all)."
+        help="Specify the fault detection mode for the tests (default: all).",
     )
+
 
 def pytest_generate_tests(metafunc):
     """
@@ -32,6 +34,7 @@ def pytest_generate_tests(metafunc):
             modes = [FaultDetectionMode.FIXED, FaultDetectionMode.BUGGY]
 
         metafunc.parametrize("fault_mode", modes, ids=[m.value.upper() for m in modes])
+
 
 @pytest.fixture
 def toogle(fault_mode: FaultDetectionMode) -> Toogle:
