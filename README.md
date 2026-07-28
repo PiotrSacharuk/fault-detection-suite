@@ -43,7 +43,31 @@ pytest --fault-mode=fixed
 pytest --fault-mode=buggy
 ```
 
-### CI/CD Matrix Pipeline
+## Code Quality & Static Analysis
+
+The project uses automated static analysis tools to maintain code quality and consistency.
+
+Quality checks are configured in:
+
+- `pyproject.toml` – Ruff and Mypy configuration
+- `.pre-commit-config.yaml` – local developer hooks
+- `.github/workflows/lint.yaml` – CI quality pipeline
+
+---
+
+### Running Quality Checks Locally
+
+Install pre-commit hooks after cloning the repository:
+
+```bash
+pre-commit install
+
+Run all quality checks manually:
+
+pre-commit run --all-files
+```
+
+## CI/CD Matrix Pipeline
 The GitHub Actions workflow (`.github/workflows/ci.yml`) runs on **ubuntu-latest** with a 2D matrix build:
 
 Python Runtimes: **3.10, 3.11, 3.12, 3.13**
@@ -52,7 +76,7 @@ Fault Modes: **fixed, buggy, all**
 
 This executes 12 parallel test jobs per build to guarantee cross-version reliability and deterministic fault detection.
 
-### Project Structure
+## Project Structure
 ```
 .
 ├── .github/
