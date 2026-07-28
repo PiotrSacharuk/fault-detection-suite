@@ -1,6 +1,5 @@
 import pytest
-from faults.base import FaultDetectionMode
-from faults.toogle import Toogle
+from faults.base import FaultDetectionMode, Toogle
 
 def test_toogle_initialization_and_validation():
     """
