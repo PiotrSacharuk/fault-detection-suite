@@ -1,9 +1,11 @@
 import pytest
+from _pytest.config import Parser
+from _pytest.python import Metafunc
 
 from faults.base import FaultDetectionMode, Toogle
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: Parser) -> None:
     """
     Add custom command-line options to pytest.
     --fault-mode [all|fixed|buggy]: Specify the fault detection mode for the tests.
@@ -17,7 +19,7 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_generate_tests(metafunc):
+def pytest_generate_tests(metafunc: Metafunc) -> None:
     """
     Parametrize tests using 'fault_mode' fixture.
     If --fault-mode is set to 'all', tests will run for both FIXED and BUGGY modes.

@@ -32,8 +32,3 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = ["tests.*", "conftest"]
-disallow_untyped_defs = false
-check_untyped_defs = true
