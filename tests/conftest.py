@@ -94,7 +94,7 @@ def pytest_terminal_summary(
 
     terminalreporter.ensure_newline()
     terminalreporter.section("FAULT INJECTION & DETECTION SUITE SUMMARY", sep="=")
-    header = f"{'Test Name':<50} | {'Mode':<8} | {'Result':<8} | {'Duration':<8}"
+    header = f"{'Test Name':<50} | {'Mode':<8} | {'Test Result':<12} | {'Duration':<10}"
     terminalreporter.write_line(header)
     terminalreporter.write_line("-" * len(header))
 

@@ -52,7 +52,8 @@ def test_ml_feature_collector_race_condition(toogle: Toogle) -> None:
 
     # Assertions dependent on the mode
     if toogle.is_fixed:
-        report += " Status            : PASSED (Data integrity preserved)\n"
+        report += " Test Result       : PASSED (No data corruption)\n"
+        report += " Fault Status      : NOT DETECTED (Data integrity preserved)\n"
         report += "============================================================\n"
         logger.info(report)
         assert actual_total_samples == expected_total_samples, (
@@ -60,7 +61,8 @@ def test_ml_feature_collector_race_condition(toogle: Toogle) -> None:
         )
 
     elif toogle.is_buggy:
-        report += " Status            : DETECTED (Data corruption verified)\n"
+        report += " Test Result       : PASSED (Data corruption detected)\n"
+        report += " Fault Status      : DETECTED (Data corruption verified)\n"
         report += "============================================================\n"
         logger.info(report)
         assert actual_total_samples < expected_total_samples, (
