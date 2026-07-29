@@ -33,4 +33,34 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest --fault-mode=${{ matrix.fault-mode }}
+          pytest --fault-mode=${{ matrix.fault-mode }} | tee pytest_output.log
+
+      - name: Publish Fault Detection Report to Job Summary
+        if: always() && matrix.fault-mode == 'buggy' && matrix.python-version == '3.12'
+        run: |
+          echo "## Fault Detection Report — Mode: \`${{ matrix.fault-mode }}\` | Python ${{ matrix.python-version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+
+          sed -n '/FAULT DETECTION REPORT/,$p' pytest_output.log \
+            >> "$GITHUB_STEP_SUMMARY" || echo "No fault detection report found in output." >> "$GITHUB_STEP_SUMMARY"
+
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Link report in PR
+        if: >
+          always() &&
+          github.event_name == 'pull_request' &&
+          matrix.fault-mode == 'buggy' &&
+          matrix.python-version == '3.12'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const url = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `**Fault Detection Report:** [open GitHub Actions summary](${url})`
+            });
