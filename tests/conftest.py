@@ -1,6 +1,14 @@
+from collections.abc import Generator
+from typing import Any, List, cast
+
 import pytest
 from _pytest.config import Parser
+from _pytest.nodes import Item
 from _pytest.python import Metafunc
+from _pytest.reports import TestReport
+from _pytest.runner import CallInfo
+from _pytest.terminal import TerminalReporter
+from pluggy import Result
 
 from faults.base import FaultDetectionMode, Toogle
 
@@ -44,3 +52,59 @@ def toogle(fault_mode: FaultDetectionMode) -> Toogle:
     Fixture to provide a Toogle instance with the specified fault detection mode.
     """
     return Toogle(mode=fault_mode)
+
+
+_fault_execution_summary: List[dict] = []
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(
+    item: Item, call: CallInfo[Any]
+) -> Generator[None, Result[TestReport], None]:
+    """
+    Hook to record test results and custom metadata for summary report.
+    """
+    outcome = yield
+    report = outcome.get_result()
+
+    if report.when == "call":
+        funcargs = cast(dict[str, Any], getattr(item, "funcargs", {}))
+        toogle_instance = funcargs.get("toogle")
+        mode = toogle_instance.get_mode().value if toogle_instance else "N/A"
+        _fault_execution_summary.append(
+            {
+                "test_name": item.name,
+                "mode": mode,
+                "outcome": report.outcome,
+                "duration": f"{report.duration:.4f}s",
+            }
+        )
+
+
+def pytest_terminal_summary(
+    terminalreporter: TerminalReporter, exitstatus: int, config: pytest.Config
+) -> None:
+    """
+    Hook to print a summary of fault detection test results at the end of the test session.
+    """
+
+    if not _fault_execution_summary:
+        terminalreporter.write_line("No fault detection tests were executed.")
+        return
+
+    terminalreporter.ensure_newline()
+    terminalreporter.section("FAULT INJECTION & DETECTION SUITE SUMMARY", sep="=")
+    header = f"{'Test Name':<50} | {'Mode':<8} | {'Result':<8} | {'Duration':<8}"
+    terminalreporter.write_line(header)
+    terminalreporter.write_line("-" * len(header))
+
+    for entry in _fault_execution_summary:
+        line = (
+            f"{entry['test_name']:<50} | "
+            f"{entry['mode'].upper():<8} | "
+            f"{entry['outcome'].upper():<8} | "
+            f"{entry['duration']:<8}"
+        )
+        terminalreporter.write_line(line)
+
+    terminalreporter.write_line("=" * len(header))

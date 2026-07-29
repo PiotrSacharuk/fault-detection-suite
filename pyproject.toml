@@ -11,6 +11,9 @@ dependencies = [
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-v"
+log_cli = true
+log_cli_level = "INFO"
+
 
 [tool.ruff]
 target-version = "py310"
