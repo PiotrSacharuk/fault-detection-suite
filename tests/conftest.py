@@ -81,6 +81,12 @@ def pytest_runtest_makereport(
         )
 
 
+TEST_NAME_WIDTH = 50
+MODE_WIDTH = 8
+RESULT_WIDTH = 12
+DURATION_WIDTH = 10
+
+
 def pytest_terminal_summary(
     terminalreporter: TerminalReporter, exitstatus: int, config: pytest.Config
 ) -> None:
@@ -94,16 +100,19 @@ def pytest_terminal_summary(
 
     terminalreporter.ensure_newline()
     terminalreporter.section("FAULT INJECTION & DETECTION SUITE SUMMARY", sep="=")
-    header = f"{'Test Name':<50} | {'Mode':<8} | {'Test Result':<12} | {'Duration':<10}"
+    header = (
+        f"{'Test Name':<{TEST_NAME_WIDTH}} | {'Mode':<{MODE_WIDTH}} | "
+        f"{'Test Result':<{RESULT_WIDTH}} | {'Duration':<{DURATION_WIDTH}}"
+    )
     terminalreporter.write_line(header)
     terminalreporter.write_line("-" * len(header))
 
     for entry in _fault_execution_summary:
         line = (
-            f"{entry['test_name']:<50} | "
-            f"{entry['mode'].upper():<8} | "
-            f"{entry['outcome'].upper():<8} | "
-            f"{entry['duration']:<8}"
+            f"{entry['test_name']:<{TEST_NAME_WIDTH}} | "
+            f"{entry['mode'].upper():<{MODE_WIDTH}} | "
+            f"{entry['outcome'].upper():<{RESULT_WIDTH}} | "
+            f"{entry['duration']:<{DURATION_WIDTH}}"
         )
         terminalreporter.write_line(line)
 
