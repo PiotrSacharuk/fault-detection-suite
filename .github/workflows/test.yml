@@ -48,6 +48,7 @@ jobs:
           echo '```text' >> "$GITHUB_STEP_SUMMARY"
 
           sed -n '/REPORT_START/,/REPORT_END/p' pytest_output.log \
+            | grep -v -E '^(REPORT_START|REPORT_END)$' \
             >> "$GITHUB_STEP_SUMMARY" || echo "No fault detection report found in output." >> "$GITHUB_STEP_SUMMARY"
 
           echo '```' >> "$GITHUB_STEP_SUMMARY"
