@@ -1,5 +1,6 @@
 import threading
 import time
+from typing import List
 
 from faults.base import Toogle
 
@@ -22,66 +23,55 @@ class MLOptimizerPipeline:
         """
         Executed by Training Worker threads.
 
-        Acquires GPU Buffer first, then Disk Cache.
+        Intends to acquire GPU Buffer first, then Disk Cache.
         :param timeout_seconds: Maximum time to wait for locks before considering a deadlock.
         :return: True if the batch was processed successfully, False if a deadlock was detected
         """
-        if self.toogle.is_buggy:
-            # BUGGY MODE: Inconsistent lock ordering (GPU Lock first, then Disk Cache)
-            acquired_gpu = self.gpu_buffer_lock.acquire(timeout=timeout_seconds)
-            if not acquired_gpu:
-                return False  # Deadlock detected (could not acquire Disk Cache lock)
-
-            try:
-                time.sleep(0.0001)  # Simulate Disk Cache work
-                acquired_cache = self.disk_cache_lock.acquire(timeout=timeout_seconds)
-                if not acquired_cache:
-                    return False  # Deadlock detected (could not acquire GPU Buffer lock)
-                try:
-                    self._increment_success()
-                    return True
-                finally:
-                    self.disk_cache_lock.release()
-            finally:
-                self.gpu_buffer_lock.release()
-        else:
-            # FIXED MODE: Always acquire locks in a globally deterministic order (lock ordering).
-            locks = sorted([self.gpu_buffer_lock, self.disk_cache_lock], key=id)
-            with locks[0]:
-                with locks[1]:
-                    self._increment_success()
-                    return True
+        return self._execute_with_locks(
+            first_lock=self.gpu_buffer_lock,
+            second_lock=self.disk_cache_lock,
+            timeout_seconds=timeout_seconds,
+        )
 
     def process_prefetch_batch(self, timeout_seconds: float = 0.5) -> bool:
         """Executed by Data Pre-fetcher threads.
 
         In BUGGY mode, acquires Disk Cache first, then GPU Buffer (violating lock hierarchy).
+        :param timeout_seconds: Maximum time to wait for locks before considering a deadlock.
+        :return: True if the batch was processed successfully, False if a deadlock was detected
         """
-        if self.toogle.is_buggy:
-            # BUGGY MODE: Inconsistent lock ordering (Disk Lock -> GPU Lock) -> CIRCULAR WAIT!
-            acquired_cache = self.disk_cache_lock.acquire(timeout=timeout_seconds)
-            if not acquired_cache:
-                return False
+        return self._execute_with_locks(
+            first_lock=self.disk_cache_lock,
+            second_lock=self.gpu_buffer_lock,
+            timeout_seconds=timeout_seconds,
+        )
 
-            try:
-                time.sleep(0.0001)  # Context switch window encouraging deadlock
-                acquired_gpu = self.gpu_buffer_lock.acquire(timeout=timeout_seconds)
-                if not acquired_gpu:
-                    return False
-                try:
-                    self._increment_success()
-                    return True
-                finally:
-                    self.gpu_buffer_lock.release()
-            finally:
-                self.disk_cache_lock.release()
+    def _execute_with_locks(
+        self, first_lock: threading.Lock, second_lock: threading.Lock, timeout_seconds: float
+    ) -> bool:
+        """Helper method encapsulating lock ordering and execution logic."""
+        if self.toogle.is_buggy:
+            lock_a, lock_b = first_lock, second_lock
         else:
-            # FIXED MODE: Same lock ordering as training worker
-            locks = sorted([self.gpu_buffer_lock, self.disk_cache_lock], key=id)
-            with locks[0]:
-                with locks[1]:
-                    self._increment_success()
-                    return True
+            locks: List[threading.Lock] = sorted([first_lock, second_lock], key=id)
+            lock_a, lock_b = locks[0], locks[1]
+
+        acquired_a = lock_a.acquire(timeout=timeout_seconds)
+        if not acquired_a:
+            return False
+
+        try:
+            time.sleep(0.0001)  # Simulate work and encourage context switch
+            acquired_b = lock_b.acquire(timeout=timeout_seconds)
+            if not acquired_b:
+                return False
+            try:
+                self._increment_success()
+                return True
+            finally:
+                lock_b.release()
+        finally:
+            lock_a.release()
 
     def _increment_success(self) -> None:
         """
