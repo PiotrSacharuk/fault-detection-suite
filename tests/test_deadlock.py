@@ -45,15 +45,26 @@ def test_ml_pipeline_deadlock_detection(toogle: Toogle) -> None:
 
         completed_operations = pipeline.operations_completed
 
-        logger.info(
-            f"Execution Mode: {toogle.get_mode().value} | "
-            f"Worker 1: {w1_success}/{num_tasks_per_worker}, "
-            f"Worker 2: {w2_success}/{num_tasks_per_worker} | "
-            f"Total Completed: {completed_operations}/{total_tasks}"
+        mode = toogle.get_mode().value.upper()
+        report = (
+            "\n"
+            "================================================================\n"
+            "              FAULT DETECTION REPORT: DEADLOCK                  \n"
+            "================================================================\n"
+            f" Execution Mode      : {mode}\n"
+            f" Total Tasks         : {total_tasks}\n"
+            f" Worker 1 (Training) : {w1_success}/{num_tasks_per_worker}\n"
+            f" Worker 2 (Prefetch) : {w2_success}/{num_tasks_per_worker}\n"
+            f" Total Completed     : {completed_operations}/{total_tasks}\n"
+            "----------------------------------------------------------------\n"
         )
 
         if toogle.is_fixed:
             # Fixed mode must process all tasks with 100% success rate
+            report += " Test Result       : PASSED (No deadlock)\n"
+            report += " Fault Status      : NOT DETECTED (Lock ordering consistent)\n"
+            report += "============================================================\n"
+            logger.info(report)
             assert completed_operations == total_tasks, (
                 f"Expected {total_tasks} successful tasks in fixed mode, "
                 f"got {completed_operations}."
@@ -63,7 +74,7 @@ def test_ml_pipeline_deadlock_detection(toogle: Toogle) -> None:
             assert completed_operations < total_tasks, (
                 f"Deadlock scenario failed to trigger! Completed {completed_operations} tasks."
             )
-            logger.warning(
-                f"Deadlock detected! Only {completed_operations}/{total_tasks} "
-                "tasks succeeded due to lock ordering violation."
-            )
+            report += " Test Result       : PASSED (Deadlock detected)\n"
+            report += " Fault Status      : DETECTED (Circular wait confirmed)\n"
+            report += "============================================================\n"
+            logger.info(report)
