@@ -3,6 +3,7 @@ import logging
 
 from faults.base import Toogle
 from faults.deadlock import MLOptimizerPipeline
+from faults.reporting import format_fault_report
 
 logger = logging.getLogger(__name__)
 
@@ -45,36 +46,32 @@ def test_ml_pipeline_deadlock_detection(toogle: Toogle) -> None:
 
         completed_operations = pipeline.operations_completed
 
-        mode = toogle.get_mode().value.upper()
-        report = (
-            "\n"
-            "================================================================\n"
-            "              FAULT DETECTION REPORT: DEADLOCK                  \n"
-            "================================================================\n"
-            f" Execution Mode      : {mode}\n"
-            f" Total Tasks         : {total_tasks}\n"
-            f" Worker 1 (Training) : {w1_success}/{num_tasks_per_worker}\n"
-            f" Worker 2 (Prefetch) : {w2_success}/{num_tasks_per_worker}\n"
-            f" Total Completed     : {completed_operations}/{total_tasks}\n"
-            "----------------------------------------------------------------\n"
-        )
-
         if toogle.is_fixed:
             # Fixed mode must process all tasks with 100% success rate
-            report += " Test Result       : PASSED (No deadlock)\n"
-            report += " Fault Status      : NOT DETECTED (Lock ordering consistent)\n"
-            report += "============================================================\n"
-            logger.info(report)
+            result_line = "PASSED (No deadlock)"
+            status_line = "NOT DETECTED (Lock ordering consistent)"
             assert completed_operations == total_tasks, (
                 f"Expected {total_tasks} successful tasks in fixed mode, "
                 f"got {completed_operations}."
             )
         elif toogle.is_buggy:
             # Buggy mode must trigger circular-wait timeouts / failure to complete all operations
+            result_line = "PASSED (Deadlock detected)"
+            status_line = "DETECTED (Circular wait confirmed)"
             assert completed_operations < total_tasks, (
                 f"Deadlock scenario failed to trigger! Completed {completed_operations} tasks."
             )
-            report += " Test Result       : PASSED (Deadlock detected)\n"
-            report += " Fault Status      : DETECTED (Circular wait confirmed)\n"
-            report += "============================================================\n"
-            logger.info(report)
+
+        report = format_fault_report(
+            title="FAULT DETECTION REPORT: DEADLOCK",
+            mode=toogle.get_mode().value.upper(),
+            fields={
+                "Total Tasks": total_tasks,
+                "Worker 1 (Training)": f"{w1_success}/{num_tasks_per_worker}",
+                "Worker 2 (Prefetch)": f"{w2_success}/{num_tasks_per_worker}",
+                "Total Completed": f"{completed_operations}/{total_tasks}",
+            },
+            result_line=result_line,
+            status_line=status_line,
+        )
+        logger.info(report)

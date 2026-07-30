@@ -3,6 +3,7 @@ import logging
 
 from faults.base import Toogle
 from faults.race_condition import MLFeatureMetricsCollector
+from faults.reporting import format_fault_report
 
 logger = logging.getLogger(__name__)
 
@@ -36,35 +37,29 @@ def test_ml_feature_collector_race_condition(toogle: Toogle) -> None:
         (data_loss / expected_total_samples) * 100.0 if expected_total_samples else 0.0
     )
 
-    mode = toogle.get_mode().value.upper()
-    report = (
-        "\n"
-        "================================================================\n"
-        "             FAULT DETECTION REPORT: RACE CONDITION             \n"
-        "================================================================\n"
-        f" Execution Mode    : {mode}\n"
-        f" Total Workers     : {num_workers}\n"
-        f" Expected Samples  : {expected_total_samples}\n"
-        f" Processed Samples : {actual_total_samples}\n"
-        f" Lost Samples      : {data_loss} ({loss_percentage:.2f}% loss) \n"
-        "----------------------------------------------------------------\n"
-    )
-
-    # Assertions dependent on the mode
     if toogle.is_fixed:
-        report += " Test Result       : PASSED (No data corruption)\n"
-        report += " Fault Status      : NOT DETECTED (Data integrity preserved)\n"
-        report += "============================================================\n"
-        logger.info(report)
+        result_line = "PASSED (No data corruption)"
+        status_line = "NOT DETECTED (Data integrity preserved)"
         assert actual_total_samples == expected_total_samples, (
             f"Expected {expected_total_samples} samples, but got {actual_total_samples}"
         )
-
     elif toogle.is_buggy:
-        report += " Test Result       : PASSED (Data corruption detected)\n"
-        report += " Fault Status      : DETECTED (Data corruption verified)\n"
-        report += "============================================================\n"
-        logger.info(report)
+        result_line = "PASSED (Data corruption detected)"
+        status_line = "DETECTED (Data corruption verified)"
         assert actual_total_samples < expected_total_samples, (
             f"Race condition not triggered! All {expected_total_samples} samples were recorded."
         )
+
+    report = format_fault_report(
+        title="FAULT DETECTION REPORT: RACE CONDITION",
+        mode=toogle.get_mode().value.upper(),
+        fields={
+            "Total Workers": num_workers,
+            "Expected Samples": expected_total_samples,
+            "Processed Samples": actual_total_samples,
+            "Lost Samples": f"{data_loss} ({loss_percentage:.2f}% loss)",
+        },
+        result_line=result_line,
+        status_line=status_line,
+    )
+    logger.info(report)
