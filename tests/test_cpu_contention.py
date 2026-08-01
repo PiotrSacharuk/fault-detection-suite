@@ -33,20 +33,18 @@ def test_ml_cpu_contention_detection(toogle: Toogle) -> None:
         iterations_per_task=iterations_per_task,
     )
 
-    # Expected baselines, derived from the calibrated single-task duration:
-    # - FIXED: work is spread across `cpu_count` workers.
-    # - BUGGY: oversubscribed workers compete for CPU, approaching fully-serial execution.
+    # Expected baseline:
+    # - FIXED: work is distributed across the available CPU cores, so execution
+    #   should remain close to the ideal parallel duration.
+    #
+    # The detection threshold allows a bounded slowdown above the ideal parallel
+    # baseline to account for scheduler noise, process management overhead, and
+    # resource contention on shared CI runners. Durations exceeding this limit
+    # indicate that CPU contention has significantly reduced throughput.
     ideal_parallel_duration = (num_tasks / cpu_count) * target_single_task_seconds
-    fully_serial_duration = num_tasks * target_single_task_seconds
 
-    # Threshold sits between the two baselines, closer to the serial one,
-    # leaving headroom above the ideal duration to absorb scheduler/process
-    # startup jitter on shared CI runners.
-    CONTENTION_THRESHOLD_POSITION = 0.4
-    threshold_seconds = (
-        ideal_parallel_duration
-        + (fully_serial_duration - ideal_parallel_duration) * CONTENTION_THRESHOLD_POSITION
-    )
+    MAX_PARALLEL_SLOWDOWN = 1.2
+    threshold_seconds = ideal_parallel_duration * MAX_PARALLEL_SLOWDOWN
 
     contention_detected = duration >= threshold_seconds
 
