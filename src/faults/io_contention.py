@@ -99,3 +99,25 @@ class MLDatasetIOManager:
         """
         with self._latencies_lock:
             self._latencies.append(latency)
+
+    @property
+    def average_latency(self) -> float:
+        """
+        Returns the average latency of all recorded I/O read operations.
+        """
+        with self._latencies_lock:
+            if not self._latencies:
+                return 0.0
+            return sum(self._latencies) / len(self._latencies)
+
+    @property
+    def p95_latency(self) -> float:
+        """
+        Returns the 95th percentile latency of all recorded I/O read operations.
+        """
+        with self._latencies_lock:
+            if not self._latencies:
+                return 0.0
+            sorted_latencies = sorted(self._latencies)
+            index = min(int(len(sorted_latencies) * 0.95), len(sorted_latencies) - 1)
+            return sorted_latencies[index]
