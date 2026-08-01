@@ -18,28 +18,20 @@ def cpu_heavy_task(iterations: int) -> float:
 
 
 def calibrate_iterations(
-    target_seconds: float = 0.05,
-    probe_iterations: int = 50_000,
-    executor: Optional[ProcessPoolExecutor] = None,
+    target_seconds: float = 0.05, probe_iterations: int = 50_000, samples: int = 3
 ) -> int:
     """
-    Measures how long a single task takes when executed through the same execution path
-    used by the read workload (e.g. via a worker process),
-    so multiprocessing overhead (pickling, IPC, scheduling) is included
-    in the calibration, not jut raw CPU-bound compute time.
+    Measures pure compute time of cpu_heavy_task directly (no executor overhead),
+    since both FIXED (ProcessPoolExecutor) and BUGGY (ThreadPoolExecutor) paths
+    should be calibrated against the same baseline: raw computation time.
     """
-    if executor is None:
-        with ProcessPoolExecutor(max_workers=1) as local_executor:
-            return _calibrate_with_executor(local_executor, target_seconds, probe_iterations)
-    return _calibrate_with_executor(executor, target_seconds, probe_iterations)
-
-
-def _calibrate_with_executor(
-    executor: ProcessPoolExecutor, target_seconds: float, probe_iterations: int
-) -> int:
-    start = time.perf_counter()
-    list(executor.map(cpu_heavy_task, [probe_iterations]))
-    elapsed = time.perf_counter() - start
+    elapsed_samples = []
+    for _ in range(samples):
+        start = time.perf_counter()
+        cpu_heavy_task(probe_iterations)
+        elapsed_samples.append(time.perf_counter() - start)
+    elapsed_samples.sort()
+    elapsed = elapsed_samples[len(elapsed_samples) // 2]
     if elapsed <= 0:
         return probe_iterations
     scale = target_seconds / elapsed
