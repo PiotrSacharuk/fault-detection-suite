@@ -19,6 +19,18 @@ The project intentionally provides two implementations of the same code path:
 | I/O contention | Concurrent dataset shard loading in an ML training pipeline | Unbounded concurrent disk/network access causing simulated throughput collapse | Elevated average/p95 read latency under concurrent load | Latency benchmark (average and p95) against a bounded-concurrency baseline | Implemented |
 | CPU contention | High-throughput ML batch scoring under oversubscribed workers | GIL-bound thread pool used instead of process pool for CPU-bound work | Threads serialize; execution time approaches sequential baseline despite available cores | Wall-clock duration benchmark against calibrated ideal-parallel and fully-serial baselines (requires ≥4 CPU cores) | Implemented |
 
+## Detection Map
+
+The following table gives a direct mapping from each fault scenario to the test and detection approach used in this suite:
+
+| Scenario | Test | Detection method |
+| --- | --- | --- |
+| Race condition | `tests/test_race_condition.py` | Concurrent worker load with deterministic scheduling; data-integrity assertions for lost updates |
+| Deadlock | `tests/test_deadlock.py` | Timeout-based lock acquisition and completion-count assertions |
+| Thread contention | `tests/test_thread_contention.py` | Wall-clock duration benchmark against serialized vs. parallel baselines |
+| I/O contention | `tests/test_io_contention.py` | Latency benchmark using average and p95 latency thresholds |
+| CPU contention | `tests/test_cpu_contention.py` | Timing benchmark against calibrated ideal-parallel and fully-serial baselines |
+
 ## Race Condition Scenario
 
 `MLFeatureMetricsCollector` models a component in an ML data-processing
