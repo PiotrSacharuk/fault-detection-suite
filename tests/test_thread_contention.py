@@ -1,12 +1,9 @@
 import concurrent.futures
-import logging
 import time
 
 from faults.thread_contention import MLInferenceCache
 from helpers.base import Toggle
-from helpers.reporting import format_fault_report
-
-logger = logging.getLogger(__name__)
+from helpers.reporting import assert_fault_detected
 
 
 def test_ml_thread_contention_detection(toggle: Toggle) -> None:
@@ -40,32 +37,14 @@ def test_ml_thread_contention_detection(toggle: Toggle) -> None:
     threshold_seconds = (serialized_duration + parallel_duration) / 2
 
     contention_detected = duration >= threshold_seconds
-    if toggle.is_buggy:
-        assert contention_detected, (
-            f"Expected thread contention, but test finished in {duration:.3f}s "
-            f"(threshold: {threshold_seconds:.3f}s)"
-        )
-        status_line = "DETECTED (Thread contention verified)"
-        result_line = "PASSED"
-    else:
-        # Fine-grained locking keeps execution below threshold
-        assert not contention_detected, (
-            f"Unexpected thread contention! Execution took {duration:.3f}s "
-            f"(threshold: {threshold_seconds:.3f}s)"
-        )
-        status_line = "NOT DETECTED (Parallel execution)"
-        result_line = "PASSED"
 
-    report = format_fault_report(
-        title="FAULT DETECTION REPORT: THREAD CONTENTION",
-        mode=toggle.get_mode().value.upper(),
+    assert_fault_detected(
+        condition=contention_detected,
+        toggle=toggle,
+        title="THREAD CONTENTION",
         fields={
             "Concurrent Workers": num_workers,
             "Total Execution Duration": f"{duration:.3f}s",
             "Contention Threshold": f"{threshold_seconds:.3f}s",
-            "Lock Contention Severity": "PRESENT" if contention_detected else "ABSENT",
         },
-        result_line=result_line,
-        status_line=status_line,
     )
-    logger.info(report)

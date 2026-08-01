@@ -1,11 +1,8 @@
 import concurrent.futures
-import logging
 
 from faults.io_contention import MLDatasetIOManager
 from helpers.base import Toggle
-from helpers.reporting import format_fault_report
-
-logger = logging.getLogger(__name__)
+from helpers.reporting import assert_fault_detected
 
 
 def test_ml_dataset_io_contention_detection(toggle: Toggle) -> None:
@@ -38,30 +35,14 @@ def test_ml_dataset_io_contention_detection(toggle: Toggle) -> None:
 
     contention_detected = p95_latency >= latency_threshold
 
-    if toggle.is_buggy:
-        assert contention_detected, (
-            f"Expected I/O contention, but p95 latency was {p95_latency:.4f}s "
-            f"(threshold: {latency_threshold:.4f}s)"
-        )
-        status_line, result_line = "DETECTED (I/O contention verified)", "PASSED"
-    else:
-        assert not contention_detected, (
-            f"Unexpected I/O contention! p95 latency was {p95_latency:.4f}s "
-            f"(threshold: {latency_threshold:.4f}s)"
-        )
-        status_line, result_line = "NOT DETECTED (Bounded concurrent access)", "PASSED"
-
-    report = format_fault_report(
-        title="FAULT DETECTION REPORT: I/O CONTENTION",
-        mode=toggle.get_mode().value.upper(),
+    assert_fault_detected(
+        condition=contention_detected,
+        toggle=toggle,
+        title="I/O CONTENTION",
         fields={
             "Concurrent Workers": num_workers,
             "Average Latency": f"{average_latency:.4f}s",
             "P95 Latency": f"{p95_latency:.4f}s",
             "Latency Threshold": f"{latency_threshold:.4f}s",
-            "I/O Contention Severity": "DETECTED" if contention_detected else "NOT DETECTED",
         },
-        result_line=result_line,
-        status_line=status_line,
     )
-    logger.info(report)
