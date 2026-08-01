@@ -17,7 +17,7 @@ The project intentionally provides two implementations of the same code path:
 | Deadlock | ML training pipeline acquiring GPU buffer and disk cache locks | Inconsistent lock acquisition ordering across worker types (circular wait) | Lock timeouts; incomplete task processing under concurrent load | Timeout-based lock acquisition with success-count assertions | Implemented |
 | Thread contention | High-throughput ML inference feature cache | Coarse-grained lock held during heavy computation (hot lock) | Severe thread serialization; execution time close to fully sequential baseline | Wall-clock duration benchmark against serialized vs. parallel baselines | Implemented |
 | I/O contention | Concurrent dataset shard loading in an ML training pipeline | Unbounded concurrent disk/network access causing simulated throughput collapse | Elevated average/p95 read latency under concurrent load | Latency benchmark (average and p95) against a bounded-concurrency baseline | Implemented |
-| CPU contention | Planned | Planned | Planned | Throughput benchmark | Planned |
+| CPU contention | High-throughput ML batch scoring under oversubscribed workers | GIL-bound thread pool used instead of process pool for CPU-bound work | Threads serialize; execution time approaches sequential baseline despite available cores | Wall-clock duration benchmark against calibrated ideal-parallel and fully-serial baselines (requires ≥4 CPU cores) | Implemented |
 
 ## Race Condition Scenario
 
@@ -135,10 +135,71 @@ As with the other scenarios, `PASSED` means the harness correctly verified
 the expected behaviour for the selected mode — it does not mean BUGGY mode
 is healthy.
 
+## CPU Contention Scenario
+
+`MLBatchScoringEngine` models a high-throughput ML batch-scoring workload
+where many independent CPU-bound scoring tasks are scheduled concurrently.
+
+In **BUGGY** mode, tasks are scheduled via `ThreadPoolExecutor`. Because of
+CPython's Global Interpreter Lock (GIL), only one thread executes Python
+bytecode at a time — CPU-bound threads contend for the GIL and starve each
+other, causing execution to approach a fully sequential baseline regardless
+of how many CPU cores are available.
+
+In **FIXED** mode, tasks are scheduled via `ProcessPoolExecutor`, bounded to
+the number of available CPU cores. Each process has its own interpreter and
+GIL, so work runs in true parallelism without oversubscription.
+
+A single task's duration is calibrated at runtime against the current
+machine, so the detection threshold scales correctly across CI runners with
+different CPU speeds.
+
+Example BUGGY-mode output:
+
+```text
+Execution Mode          : BUGGY
+CPU Cores               : 8
+Scheduled Tasks         : 32
+Iterations Per Task     : 512340
+Execution Duration      : 3.974s
+Duration Threshold      : 3.040s
+CPU Contention Severity : DETECTED
+Test Result             : PASSED
+Fault Status            : DETECTED (CPU contention verified)
+```
+
+As with the other scenarios, `PASSED` means the harness correctly verified
+the expected behaviour for the selected mode — it does not mean BUGGY mode
+is healthy.
+
+### Minimum core requirement
+
+This scenario is automatically skipped when fewer than 4 CPU cores are
+available (`os.cpu_count() < 4`).
+
+GIL contention is a genuine effect, but its measurable impact scales with
+the ratio of oversubscribed threads to CPU cores. On 2-core runners, the
+absolute wall-clock difference between GIL-serialized (BUGGY) and truly
+parallel (FIXED) execution is small enough that scheduler noise, cgroup CPU
+throttling, and shared-infrastructure contention on CI runners regularly
+push the measurement across the detection threshold in either direction —
+producing both false positives and false negatives independent of any
+threshold tuning attempted. Widening thresholds or increasing per-task
+workload size does not resolve this, because the *relative* slowdown
+between BUGGY and FIXED stays roughly constant; the limiting factor is
+insufficient absolute timing margin at low core counts, not insufficient
+GIL-yielding opportunities.
+
+Skipped runs are reported explicitly (not silently ignored) so CI visibility
+is preserved.
+
 ## Requirements
 
 - Python 3.10, 3.11, 3.12, or 3.13
 - `pip`
+- 4+ CPU cores recommended for full scenario coverage (the CPU contention
+  scenario is skipped on runners with fewer cores — see
+  [CPU Contention Scenario](#cpu-contention-scenario))
 
 ## Setup
 
@@ -235,18 +296,20 @@ runs the automated test matrix.
 ├── src/
 │   └── faults/
 │       ├── base.py                # FaultDetectionMode and Toogle
+│       ├── cpu_contention.py      # ML batch scoring engine CPU contention scenario
 │       ├── deadlock.py            # ML optimizer pipeline deadlock scenario
+│       ├── io_contention.py       # ML dataset I/O manager contention scenario
 │       ├── race_condition.py      # ML metrics collector fault scenario
 │       ├── thread_contention.py   # ML inference cache thread contention scenario
-│       ├── io_contention.py       # ML dataset I/O manager contention scenario
 │       └── reporting.py           # Shared fault-detection report formatting
 ├── tests/
 │   ├── conftest.py                # CLI option, parametrization, fixtures, reporting hooks
 │   ├── test_deadlock.py           # Deadlock detection test
-│   ├── test_race_condition.py     # Race-condition detection test
-│   ├── test_thread_contention.py  # Thread contention detection test
+│   ├── test_cpu_contention.py     # CPU contention detection test (skipped <4 cores)
 │   ├── test_io_contention.py      # I/O contention detection test
+│   ├── test_race_condition.py     # Race-condition detection test
 │   ├── test_sanity.py             # Environment validation
+│   ├── test_thread_contention.py  # Thread contention detection test
 │   └── test_toogle.py             # Toogle tests
 ├── requirements.txt
 ├── pyproject.toml
