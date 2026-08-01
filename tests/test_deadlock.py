@@ -1,11 +1,8 @@
 import concurrent.futures
-import logging
 
 from faults.deadlock import MLOptimizerPipeline
 from helpers.base import Toggle
-from helpers.reporting import format_fault_report
-
-logger = logging.getLogger(__name__)
+from helpers.reporting import assert_fault_detected
 
 
 def test_ml_pipeline_deadlock_detection(toggle: Toggle) -> None:
@@ -46,32 +43,14 @@ def test_ml_pipeline_deadlock_detection(toggle: Toggle) -> None:
 
         completed_operations = pipeline.operations_completed
 
-        if toggle.is_fixed:
-            # Fixed mode must process all tasks with 100% success rate
-            result_line = "PASSED (No deadlock)"
-            status_line = "NOT DETECTED (Lock ordering consistent)"
-            assert completed_operations == total_tasks, (
-                f"Expected {total_tasks} successful tasks in fixed mode, "
-                f"got {completed_operations}."
-            )
-        elif toggle.is_buggy:
-            # Buggy mode must trigger circular-wait timeouts / failure to complete all operations
-            result_line = "PASSED (Deadlock detected)"
-            status_line = "DETECTED (Circular wait confirmed)"
-            assert completed_operations < total_tasks, (
-                f"Deadlock scenario failed to trigger! Completed {completed_operations} tasks."
-            )
-
-        report = format_fault_report(
-            title="FAULT DETECTION REPORT: DEADLOCK",
-            mode=toggle.get_mode().value.upper(),
+        assert_fault_detected(
+            condition=completed_operations < total_tasks,
+            toggle=toggle,
+            title="DEADLOCK",
             fields={
                 "Total Tasks": total_tasks,
                 "Worker 1 (Training)": f"{w1_success}/{num_tasks_per_worker}",
                 "Worker 2 (Prefetch)": f"{w2_success}/{num_tasks_per_worker}",
                 "Total Completed": f"{completed_operations}/{total_tasks}",
             },
-            result_line=result_line,
-            status_line=status_line,
         )
-        logger.info(report)

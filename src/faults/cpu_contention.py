@@ -26,7 +26,7 @@ def calibrate_iterations(
     Measures how long a single task takes when executed through the same execution path
     used by the read workload (e.g. via a worker process),
     so multiprocessing overhead (pickling, IPC, scheduling) is included
-    in the calibration, not jut raw CPU-bound compute time.
+    in the calibration, not just raw CPU-bound compute time.
     """
     if executor is None:
         with ProcessPoolExecutor(max_workers=1) as local_executor:

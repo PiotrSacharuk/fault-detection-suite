@@ -1,11 +1,8 @@
 import concurrent.futures
-import logging
 
 from faults.race_condition import MLFeatureMetricsCollector
 from helpers.base import Toggle
-from helpers.reporting import format_fault_report
-
-logger = logging.getLogger(__name__)
+from helpers.reporting import assert_fault_detected
 
 
 def test_ml_feature_collector_race_condition(toggle: Toggle) -> None:
@@ -37,29 +34,14 @@ def test_ml_feature_collector_race_condition(toggle: Toggle) -> None:
         (data_loss / expected_total_samples) * 100.0 if expected_total_samples else 0.0
     )
 
-    if toggle.is_fixed:
-        result_line = "PASSED (No data corruption)"
-        status_line = "NOT DETECTED (Data integrity preserved)"
-        assert actual_total_samples == expected_total_samples, (
-            f"Expected {expected_total_samples} samples, but got {actual_total_samples}"
-        )
-    elif toggle.is_buggy:
-        result_line = "PASSED (Data corruption detected)"
-        status_line = "DETECTED (Data corruption verified)"
-        assert actual_total_samples < expected_total_samples, (
-            f"Race condition not triggered! All {expected_total_samples} samples were recorded."
-        )
-
-    report = format_fault_report(
-        title="FAULT DETECTION REPORT: RACE CONDITION",
-        mode=toggle.get_mode().value.upper(),
+    assert_fault_detected(
+        condition=actual_total_samples < expected_total_samples,
+        toggle=toggle,
+        title="RACE CONDITION",
         fields={
             "Total Workers": num_workers,
             "Expected Samples": expected_total_samples,
             "Processed Samples": actual_total_samples,
             "Lost Samples": f"{data_loss} ({loss_percentage:.2f}% loss)",
         },
-        result_line=result_line,
-        status_line=status_line,
     )
-    logger.info(report)

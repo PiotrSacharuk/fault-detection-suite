@@ -193,6 +193,30 @@ GIL-yielding opportunities.
 Skipped runs are reported explicitly (not silently ignored) so CI visibility
 is preserved.
 
+## Interpretation of Results
+
+The suite is designed so that a test reports `PASSED` when the harness
+correctly detects the expected fault condition for the selected execution
+mode. In `BUGGY` mode, `PASSED` together with `Fault Status: DETECTED`
+means that the workload behaved as intended for an intentionally broken
+implementation: the fault was present and the detector recognized it. In
+`FIXED` mode, the same harness reports `PASSED` when the implementation stays
+within the acceptable baseline and no fault is detected.
+
+To reduce flakiness on shared CI machines, the detection thresholds are not
+set at an extreme boundary. The CPU contention test uses a threshold placed
+40% of the way from the ideal-parallel baseline to the fully serial baseline,
+which leaves enough headroom to absorb minor timing jitter from noisy-neighbor
+processes, CPU throttling, and process startup overhead while still remaining
+sensitive to genuine contention. This keeps the suite stable across different
+runners without masking real regressions.
+
+The `test_ml_cpu_contention_detection` check is skipped on machines with fewer
+than 4 CPU cores because the GIL-related slowdown is too small and too
+sensitive to environment noise to be measured reliably at low core counts.
+Skipping preserves signal quality and avoids false positives or false negatives
+that would be unrelated to the code under test.
+
 ## Requirements
 
 - Python 3.10, 3.11, 3.12, or 3.13

@@ -1,14 +1,10 @@
-import logging
 import os
 
 import pytest
 
 from faults.cpu_contention import MLBatchScoringEngine, calibrate_iterations
 from helpers.base import Toggle
-from helpers.reporting import format_fault_report
-
-logger = logging.getLogger(__name__)
-
+from helpers.reporting import assert_fault_detected
 
 cpu_count = os.cpu_count() or 0
 
@@ -60,31 +56,15 @@ def test_ml_cpu_contention_detection(toggle: Toggle) -> None:
 
     contention_detected = duration >= threshold_seconds
 
-    if toggle.is_buggy:
-        assert contention_detected, (
-            f"Expected CPU contention, but execution finished in {duration:.3f}s "
-            f"(threshold: {threshold_seconds:.3f}s)"
-        )
-        status_line, result_line = "DETECTED (CPU contention verified)", "PASSED"
-    else:
-        assert not contention_detected, (
-            f"Unexpected CPU contention! Execution took {duration:.3f}s "
-            f"(threshold: {threshold_seconds:.3f}s)"
-        )
-        status_line, result_line = "NOT DETECTED (Bounded CPU parallelism)", "PASSED"
-
-    report = format_fault_report(
-        title="FAULT DETECTION REPORT: CPU CONTENTION",
-        mode=toggle.get_mode().value.upper(),
+    assert_fault_detected(
+        condition=contention_detected,
+        toggle=toggle,
+        title="CPU CONTENTION",
         fields={
             "CPU Cores": cpu_count,
             "Scheduled Tasks": num_tasks,
             "Iterations Per Task": iterations_per_task,
             "Execution Duration": f"{duration:.3f}s",
             "Duration Threshold": f"{threshold_seconds:.3f}s",
-            "CPU Contention Severity": "DETECTED" if contention_detected else "NOT DETECTED",
         },
-        result_line=result_line,
-        status_line=status_line,
     )
-    logger.info(report)
