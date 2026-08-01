@@ -1,19 +1,25 @@
 import concurrent.futures
 
+from conftest import LoadProfile
+
 from faults.io_contention import MLDatasetIOManager
 from helpers.base import Toggle
 from helpers.reporting import assert_fault_detected
 
 
-def test_ml_dataset_io_contention_detection(toggle: Toggle) -> None:
+def test_ml_dataset_io_contention_detection(toggle: Toggle, load_profile: LoadProfile) -> None:
     """
     Verifies latency/througput impact of unbouded concurrent I/O access (BUGGY)
     vas bounded, pooled access (FIXED)
     """
-    io_manager = MLDatasetIOManager(toggle, max_concurrent_io=4, base_io_latency=0.02)
+    io_manager = MLDatasetIOManager(
+        toggle,
+        max_concurrent_io=load_profile.concurrency_limit,
+        base_io_latency=load_profile.unit_delay_seconds,
+    )
 
-    num_workers = 20
-    reads_per_worker = 5
+    num_workers = load_profile.worker_count
+    reads_per_worker = load_profile.tasks_per_worker
 
     def worker_task(worker_id: int) -> None:
         for i in range(reads_per_worker):

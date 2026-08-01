@@ -1,20 +1,22 @@
 import concurrent.futures
 
+from conftest import LoadProfile
+
 from faults.race_condition import MLFeatureMetricsCollector
 from helpers.base import Toggle
 from helpers.reporting import assert_fault_detected
 
 
-def test_ml_feature_collector_race_condition(toggle: Toggle) -> None:
+def test_ml_feature_collector_race_condition(toggle: Toggle, load_profile: LoadProfile) -> None:
     """
     Test verifying the resilience of MLFeatureMetricsCollector against race conditions
     during parallel data extraction from 20 workers.
     """
     collector = MLFeatureMetricsCollector(toggle)
 
-    num_workers = 20
-    batches_per_worker = 10
-    batch_size = 50
+    num_workers = load_profile.worker_count
+    batches_per_worker = load_profile.tasks_per_worker
+    batch_size = load_profile.batch_size
     target_class = "feature_vector_v1"
 
     expected_total_samples = num_workers * batches_per_worker * batch_size
