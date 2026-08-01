@@ -26,7 +26,7 @@ def test_ml_cpu_contention_detection(toogle: Toogle) -> None:
     target_single_task_seconds = 0.05
     iterations_per_task = calibrate_iterations(target_seconds=target_single_task_seconds)
 
-    num_tasks = min(max(4, cpu_count * 2), 16)
+    num_tasks = min(max(8, cpu_count * 2), 16)
 
     duration = engine.run_batch(
         num_tasks=num_tasks,
