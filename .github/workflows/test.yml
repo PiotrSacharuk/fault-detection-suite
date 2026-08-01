@@ -38,10 +38,11 @@ jobs:
 
       - name: Run tests
         run: |
+          set -o pipefail
           pytest --fault-mode=${{ matrix.fault-mode }} | tee pytest_output.log
 
       - name: Publish Fault Detection Report to Job Summary
-        if: always() && matrix.fault-mode == 'buggy' && matrix.python-version == '3.12'
+        if: always() && matrix.fault-mode == 'all' && matrix.python-version == '3.12'
         run: |
           echo "## Fault Detection Report — Mode: \`${{ matrix.fault-mode }}\` | Python ${{ matrix.python-version }}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
@@ -57,7 +58,7 @@ jobs:
         if: >
           always() &&
           github.event_name == 'pull_request' &&
-          matrix.fault-mode == 'buggy' &&
+          matrix.fault-mode == 'all' &&
           matrix.python-version == '3.12'
         uses: actions/github-script@v9
         with:
