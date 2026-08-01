@@ -21,7 +21,7 @@ class LoadProfile:
     Shared, real defaults used by every test unless overridden via CLI.
     """
 
-    worker_count: int = 10
+    worker_count: int = 20
     tasks_per_worker: int = 10
     batch_size: int = 50
     unit_delay_seconds: float = 0.02  # simulated per-operation cost (compute/IO/cache)
@@ -52,8 +52,8 @@ def pytest_addoption(parser: Parser) -> None:
         "--workers",
         action="store",
         type=int,
-        default=10,
-        help="Number of worker threads for tests (default: 10).",
+        default=20,
+        help="Number of worker threads for tests (default: 20).",
     )
 
     parser.addoption(
