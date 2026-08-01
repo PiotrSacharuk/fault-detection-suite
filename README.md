@@ -280,6 +280,40 @@ Show the detailed fault-detection logs in the terminal:
 pytest --fault-mode=buggy --log-cli-level=INFO
 ```
 
+## Scaling Test Load
+
+Every fault-detection test accepts a shared `load_profile` fixture, built
+from CLI options in `tests/conftest.py`. This scales concurrency across the
+entire suite, or a single test, without editing any test code.
+
+| CLI option | `LoadProfile` field | Default | Meaning |
+| --- | --- | --- | --- |
+| `--workers` | `worker_count` | `20` | Total number of concurrent worker threads |
+| `--tasks-per-worker` | `tasks_per_worker` | `10` | Operations each worker performs |
+| `--batch-size` | `batch_size` | `50` | Items processed in a single batch operation |
+| `--unit-delay` | `unit_delay_seconds` | `0.02` | Simulated per-operation delay (compute/I/O/cache) |
+| `--lock-timeout` | `lock_timeout_seconds` | `0.2` | Max wait for a single `lock.acquire()` |
+| `--execution-timeout` | `execution_timeout_seconds` | `10.0` | Max wait for a worker's `.result()` |
+| `--concurrency-limit` | `concurrency_limit` | `4` | Max concurrent I/O operations (FIXED mode) |
+| `--contention-sensitivity` | `contention_sensitivity` | `0.4` | Threshold multiplier (CPU contention test) |
+
+Not every test consumes every field — each reads only what its scenario
+needs (see [Detection Map](#detection-map)).
+
+```bash
+# Light load
+pytest --fault-mode=buggy --workers=2 --tasks-per-worker=5
+
+# Heavy load
+pytest --fault-mode=buggy --workers=100 --tasks-per-worker=50
+
+# Scale a single test
+pytest tests/test_race_condition.py --fault-mode=buggy --workers=200 --batch-size=500
+```
+
+The `load_profile` fixture is injected automatically into tests that
+request it, the same way `toggle` is injected for `fault_mode`.
+
 ## Fault Modes
 
 | CLI option | Behaviour |
