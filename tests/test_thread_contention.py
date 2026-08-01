@@ -1,20 +1,22 @@
 import concurrent.futures
 import time
 
+from conftest import LoadProfile
+
 from faults.thread_contention import MLInferenceCache
 from helpers.base import Toggle
 from helpers.reporting import assert_fault_detected
 
 
-def test_ml_thread_contention_detection(toggle: Toggle) -> None:
+def test_ml_thread_contention_detection(toggle: Toggle, load_profile: LoadProfile) -> None:
     """
     Verifies performance impact under high thread contention (BUGGY)
     vs parallel execution (FIXED)
     """
     cache = MLInferenceCache(toggle)
-    num_workers = 10
-    tasks_per_worker = 5
-    compute_delay = 0.02
+    num_workers = load_profile.worker_count
+    tasks_per_worker = load_profile.tasks_per_worker
+    compute_delay = load_profile.unit_delay_seconds
 
     def worker_task(worker_id: int) -> None:
         for i in range(tasks_per_worker):
