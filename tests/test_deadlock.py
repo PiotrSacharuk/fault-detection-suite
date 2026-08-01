@@ -1,14 +1,14 @@
 import concurrent.futures
 import logging
 
-from faults.base import Toogle
 from faults.deadlock import MLOptimizerPipeline
-from faults.reporting import format_fault_report
+from helpers.base import Toggle
+from helpers.reporting import format_fault_report
 
 logger = logging.getLogger(__name__)
 
 
-def test_ml_pipeline_deadlock_detection(toogle: Toogle) -> None:
+def test_ml_pipeline_deadlock_detection(toggle: Toggle) -> None:
     """
     Verifies lock-ordering resilience and deadlock detection under concurrent resource demand.
 
@@ -16,7 +16,7 @@ def test_ml_pipeline_deadlock_detection(toogle: Toogle) -> None:
     - In BUGGY mode: Inconsistent acquisition triggers lock contention/timeouts (circular wait).
     """
 
-    pipeline = MLOptimizerPipeline(toogle)
+    pipeline = MLOptimizerPipeline(toggle)
     num_tasks_per_worker = 10
     total_tasks = num_tasks_per_worker * 2
     execution_timeout = 3.0
@@ -46,7 +46,7 @@ def test_ml_pipeline_deadlock_detection(toogle: Toogle) -> None:
 
         completed_operations = pipeline.operations_completed
 
-        if toogle.is_fixed:
+        if toggle.is_fixed:
             # Fixed mode must process all tasks with 100% success rate
             result_line = "PASSED (No deadlock)"
             status_line = "NOT DETECTED (Lock ordering consistent)"
@@ -54,7 +54,7 @@ def test_ml_pipeline_deadlock_detection(toogle: Toogle) -> None:
                 f"Expected {total_tasks} successful tasks in fixed mode, "
                 f"got {completed_operations}."
             )
-        elif toogle.is_buggy:
+        elif toggle.is_buggy:
             # Buggy mode must trigger circular-wait timeouts / failure to complete all operations
             result_line = "PASSED (Deadlock detected)"
             status_line = "DETECTED (Circular wait confirmed)"
@@ -64,7 +64,7 @@ def test_ml_pipeline_deadlock_detection(toogle: Toogle) -> None:
 
         report = format_fault_report(
             title="FAULT DETECTION REPORT: DEADLOCK",
-            mode=toogle.get_mode().value.upper(),
+            mode=toggle.get_mode().value.upper(),
             fields={
                 "Total Tasks": total_tasks,
                 "Worker 1 (Training)": f"{w1_success}/{num_tasks_per_worker}",

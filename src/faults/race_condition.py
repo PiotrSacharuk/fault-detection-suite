@@ -2,7 +2,7 @@ import threading
 import time
 from typing import Dict
 
-from faults.base import Toogle
+from helpers.base import Toggle
 
 
 class MLFeatureMetricsCollector:
@@ -11,8 +11,8 @@ class MLFeatureMetricsCollector:
     Collects statistics of extracted features from multiple worker threads.
     """
 
-    def __init__(self, toogle: Toogle) -> None:
-        self.toogle = toogle
+    def __init__(self, toggle: Toggle) -> None:
+        self.toggle = toggle
         self.total_samples_processed: int = 0
         self.class_counts: Dict[str, int] = {}
         self._lock = threading.Lock()
@@ -23,7 +23,7 @@ class MLFeatureMetricsCollector:
         :param class_label: ML class label (e.g., "rendered_frame")
         :param batch_size: Number of samples in the batch
         """
-        if self.toogle.is_buggy:
+        if self.toggle.is_buggy:
             # BUGGY IMPLEMENTATION:
             # Lack of synchronization when accessing shared state.
             # Calling time.sleep simulates feature extraction and forces a context switch,

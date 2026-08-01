@@ -2,7 +2,7 @@ import threading
 import time
 from typing import Dict, List
 
-from faults.base import Toogle
+from helpers.base import Toggle
 
 
 class MLDatasetIOManager:
@@ -18,9 +18,9 @@ class MLDatasetIOManager:
     """
 
     def __init__(
-        self, toogle: Toogle, max_concurrent_io: int = 4, base_io_latency: float = 0.02
+        self, toggle: Toggle, max_concurrent_io: int = 4, base_io_latency: float = 0.02
     ) -> None:
-        self.toogle = toogle
+        self.toggle = toggle
         self.max_concurrent_io = max_concurrent_io
         self.base_io_latency = base_io_latency
 
@@ -39,7 +39,7 @@ class MLDatasetIOManager:
         Simulates reading a dataset shard from disk/network.
         Returns the observed latency for this single read.
         """
-        if self.toogle.is_buggy:
+        if self.toggle.is_buggy:
             return self._unbouded_read(shard_id)
         return self._bounded_read(shard_id)
 

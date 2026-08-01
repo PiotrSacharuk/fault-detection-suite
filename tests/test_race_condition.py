@@ -1,19 +1,19 @@
 import concurrent.futures
 import logging
 
-from faults.base import Toogle
 from faults.race_condition import MLFeatureMetricsCollector
-from faults.reporting import format_fault_report
+from helpers.base import Toggle
+from helpers.reporting import format_fault_report
 
 logger = logging.getLogger(__name__)
 
 
-def test_ml_feature_collector_race_condition(toogle: Toogle) -> None:
+def test_ml_feature_collector_race_condition(toggle: Toggle) -> None:
     """
     Test verifying the resilience of MLFeatureMetricsCollector against race conditions
     during parallel data extraction from 20 workers.
     """
-    collector = MLFeatureMetricsCollector(toogle)
+    collector = MLFeatureMetricsCollector(toggle)
 
     num_workers = 20
     batches_per_worker = 10
@@ -37,13 +37,13 @@ def test_ml_feature_collector_race_condition(toogle: Toogle) -> None:
         (data_loss / expected_total_samples) * 100.0 if expected_total_samples else 0.0
     )
 
-    if toogle.is_fixed:
+    if toggle.is_fixed:
         result_line = "PASSED (No data corruption)"
         status_line = "NOT DETECTED (Data integrity preserved)"
         assert actual_total_samples == expected_total_samples, (
             f"Expected {expected_total_samples} samples, but got {actual_total_samples}"
         )
-    elif toogle.is_buggy:
+    elif toggle.is_buggy:
         result_line = "PASSED (Data corruption detected)"
         status_line = "DETECTED (Data corruption verified)"
         assert actual_total_samples < expected_total_samples, (
@@ -52,7 +52,7 @@ def test_ml_feature_collector_race_condition(toogle: Toogle) -> None:
 
     report = format_fault_report(
         title="FAULT DETECTION REPORT: RACE CONDITION",
-        mode=toogle.get_mode().value.upper(),
+        mode=toggle.get_mode().value.upper(),
         fields={
             "Total Workers": num_workers,
             "Expected Samples": expected_total_samples,

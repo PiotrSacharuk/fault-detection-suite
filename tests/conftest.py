@@ -10,7 +10,7 @@ from _pytest.runner import CallInfo
 from _pytest.terminal import TerminalReporter
 from pluggy import Result
 
-from faults.base import FaultDetectionMode, Toogle
+from helpers.base import FaultDetectionMode, Toggle
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -47,11 +47,11 @@ def pytest_generate_tests(metafunc: Metafunc) -> None:
 
 
 @pytest.fixture
-def toogle(fault_mode: FaultDetectionMode) -> Toogle:
+def toggle(fault_mode: FaultDetectionMode) -> Toggle:
     """
-    Fixture to provide a Toogle instance with the specified fault detection mode.
+    Fixture to provide a Toggle instance with the specified fault detection mode.
     """
-    return Toogle(mode=fault_mode)
+    return Toggle(mode=fault_mode)
 
 
 _fault_execution_summary: List[dict] = []
@@ -69,8 +69,8 @@ def pytest_runtest_makereport(
 
     if report.when == "call":
         funcargs = cast(dict[str, Any], getattr(item, "funcargs", {}))
-        toogle_instance = funcargs.get("toogle")
-        mode = toogle_instance.get_mode().value if toogle_instance else "N/A"
+        toggle_instance = funcargs.get("toggle")
+        mode = toggle_instance.get_mode().value if toggle_instance else "N/A"
         _fault_execution_summary.append(
             {
                 "test_name": item.name,

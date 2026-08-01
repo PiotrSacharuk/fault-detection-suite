@@ -2,7 +2,7 @@ import threading
 import time
 from typing import List
 
-from faults.base import Toogle
+from helpers.base import Toggle
 
 
 class MLOptimizerPipeline:
@@ -12,8 +12,8 @@ class MLOptimizerPipeline:
     Demonstrates a classic circular-wait deadlock cause by inconsistent lock acquisition ordering.
     """
 
-    def __init__(self, toogle: Toogle) -> None:
-        self.toogle = toogle
+    def __init__(self, toggle: Toggle) -> None:
+        self.toggle = toggle
         self.gpu_buffer_lock = threading.Lock()
         self.disk_cache_lock = threading.Lock()
         self.operations_completed = 0
@@ -50,7 +50,7 @@ class MLOptimizerPipeline:
         self, first_lock: threading.Lock, second_lock: threading.Lock, timeout_seconds: float
     ) -> bool:
         """Helper method encapsulating lock ordering and execution logic."""
-        if self.toogle.is_buggy:
+        if self.toggle.is_buggy:
             lock_a, lock_b = first_lock, second_lock
         else:
             locks: List[threading.Lock] = sorted([first_lock, second_lock], key=id)

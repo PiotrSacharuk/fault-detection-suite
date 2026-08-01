@@ -10,14 +10,14 @@ class FaultDetectionMode(str, Enum):
     BUGGY = "buggy"
 
 
-class Toogle:
+class Toggle:
     """
     A class to manage the toggling of fault detection modes.
     """
 
     def __init__(self, mode: FaultDetectionMode = FaultDetectionMode.FIXED):
         """
-        Initialize the Toogle instance with a default fault detection mode.
+        Initialize the Toggle instance with a default fault detection mode.
         """
         self._mode = mode
 

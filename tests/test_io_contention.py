@@ -1,19 +1,19 @@
 import concurrent.futures
 import logging
 
-from faults.base import Toogle
 from faults.io_contention import MLDatasetIOManager
-from faults.reporting import format_fault_report
+from helpers.base import Toggle
+from helpers.reporting import format_fault_report
 
 logger = logging.getLogger(__name__)
 
 
-def test_ml_dataset_io_contention_detection(toogle: Toogle) -> None:
+def test_ml_dataset_io_contention_detection(toggle: Toggle) -> None:
     """
     Verifies latency/througput impact of unbouded concurrent I/O access (BUGGY)
     vas bounded, pooled access (FIXED)
     """
-    io_manager = MLDatasetIOManager(toogle, max_concurrent_io=4, base_io_latency=0.02)
+    io_manager = MLDatasetIOManager(toggle, max_concurrent_io=4, base_io_latency=0.02)
 
     num_workers = 20
     reads_per_worker = 5
@@ -38,7 +38,7 @@ def test_ml_dataset_io_contention_detection(toogle: Toogle) -> None:
 
     contention_detected = p95_latency >= latency_threshold
 
-    if toogle.is_buggy:
+    if toggle.is_buggy:
         assert contention_detected, (
             f"Expected I/O contention, but p95 latency was {p95_latency:.4f}s "
             f"(threshold: {latency_threshold:.4f}s)"
@@ -53,7 +53,7 @@ def test_ml_dataset_io_contention_detection(toogle: Toogle) -> None:
 
     report = format_fault_report(
         title="FAULT DETECTION REPORT: I/O CONTENTION",
-        mode=toogle.get_mode().value.upper(),
+        mode=toggle.get_mode().value.upper(),
         fields={
             "Concurrent Workers": num_workers,
             "Average Latency": f"{average_latency:.4f}s",

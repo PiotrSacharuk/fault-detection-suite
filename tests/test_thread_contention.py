@@ -2,19 +2,19 @@ import concurrent.futures
 import logging
 import time
 
-from faults.base import Toogle
-from faults.reporting import format_fault_report
 from faults.thread_contention import MLInferenceCache
+from helpers.base import Toggle
+from helpers.reporting import format_fault_report
 
 logger = logging.getLogger(__name__)
 
 
-def test_ml_thread_contention_detection(toogle: Toogle) -> None:
+def test_ml_thread_contention_detection(toggle: Toggle) -> None:
     """
     Verifies performance impact under high thread contention (BUGGY)
     vs parallel execution (FIXED)
     """
-    cache = MLInferenceCache(toogle)
+    cache = MLInferenceCache(toggle)
     num_workers = 10
     tasks_per_worker = 5
     compute_delay = 0.02
@@ -40,7 +40,7 @@ def test_ml_thread_contention_detection(toogle: Toogle) -> None:
     threshold_seconds = (serialized_duration + parallel_duration) / 2
 
     contention_detected = duration >= threshold_seconds
-    if toogle.is_buggy:
+    if toggle.is_buggy:
         assert contention_detected, (
             f"Expected thread contention, but test finished in {duration:.3f}s "
             f"(threshold: {threshold_seconds:.3f}s)"
@@ -58,7 +58,7 @@ def test_ml_thread_contention_detection(toogle: Toogle) -> None:
 
     report = format_fault_report(
         title="FAULT DETECTION REPORT: THREAD CONTENTION",
-        mode=toogle.get_mode().value.upper(),
+        mode=toggle.get_mode().value.upper(),
         fields={
             "Concurrent Workers": num_workers,
             "Total Execution Duration": f"{duration:.3f}s",

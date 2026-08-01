@@ -4,7 +4,7 @@ import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from typing import Optional
 
-from faults.base import Toogle
+from helpers.base import Toggle
 
 
 def cpu_heavy_task(iterations: int) -> float:
@@ -59,8 +59,8 @@ class MLBatchScoringEngine:
     without oversubscription.
     """
 
-    def __init__(self, toogle: Toogle, max_parallelism: Optional[int] = None) -> None:
-        self.toogle = toogle
+    def __init__(self, toggle: Toggle, max_parallelism: Optional[int] = None) -> None:
+        self.toggle = toggle
         self.cpu_count = os.cpu_count() or 2
         self.max_parallelism = max_parallelism or self.cpu_count
 
@@ -68,8 +68,8 @@ class MLBatchScoringEngine:
         """
         Runs a batch of CPU-bound scoring tasks and returns wall-clock duration.
         """
-        executor_class = ThreadPoolExecutor if self.toogle.is_buggy else ProcessPoolExecutor
-        workers = num_tasks if self.toogle.is_buggy else min(self.max_parallelism, num_tasks)
+        executor_class = ThreadPoolExecutor if self.toggle.is_buggy else ProcessPoolExecutor
+        workers = num_tasks if self.toggle.is_buggy else min(self.max_parallelism, num_tasks)
 
         with executor_class(max_workers=workers) as executor:
             # Warm-up: spawn worker processes before starting the timer, so

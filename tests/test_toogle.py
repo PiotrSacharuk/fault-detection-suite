@@ -1,30 +1,30 @@
 import pytest
 
-from faults.base import FaultDetectionMode, Toogle
+from helpers.base import FaultDetectionMode, Toggle
 
 
-def test_toogle_initialization_and_validation() -> None:
+def test_toggle_initialization_and_validation() -> None:
     """
-    Test the initialization and validation of the Toogle class.
-    This test checks that the Toogle class initializes correctly with the default mode,
+    Test the initialization and validation of the Toggle class.
+    This test checks that the Toggle class initializes correctly with the default mode,
     allows setting and getting the mode, and raises a ValueError for invalid modes.
     """
-    toogle = Toogle(FaultDetectionMode.FIXED)
-    assert toogle.get_mode() == FaultDetectionMode.FIXED
-    assert toogle.is_fixed is True
-    assert toogle.is_buggy is False
+    toggle = Toggle(FaultDetectionMode.FIXED)
+    assert toggle.get_mode() == FaultDetectionMode.FIXED
+    assert toggle.is_fixed is True
+    assert toggle.is_buggy is False
 
-    toogle.set_mode(FaultDetectionMode.BUGGY)
-    assert toogle.get_mode() == FaultDetectionMode.BUGGY
-    assert toogle.is_fixed is False
-    assert toogle.is_buggy is True
+    toggle.set_mode(FaultDetectionMode.BUGGY)
+    assert toggle.get_mode() == FaultDetectionMode.BUGGY
+    assert toggle.is_fixed is False
+    assert toggle.is_buggy is True
 
     with pytest.raises(ValueError):
-        toogle.set_mode("invalid_mode")
+        toggle.set_mode("invalid_mode")
 
 
-def test_automatic_mode_injection(toogle: Toogle) -> None:
-    if toogle.is_fixed:
-        assert toogle.get_mode() == FaultDetectionMode.FIXED
-    elif toogle.is_buggy:
-        assert toogle.get_mode() == FaultDetectionMode.BUGGY
+def test_automatic_mode_injection(toggle: Toggle) -> None:
+    if toggle.is_fixed:
+        assert toggle.get_mode() == FaultDetectionMode.FIXED
+    elif toggle.is_buggy:
+        assert toggle.get_mode() == FaultDetectionMode.BUGGY

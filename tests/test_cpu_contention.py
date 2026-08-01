@@ -3,9 +3,9 @@ import os
 
 import pytest
 
-from faults.base import Toogle
 from faults.cpu_contention import MLBatchScoringEngine, calibrate_iterations
-from faults.reporting import format_fault_report
+from helpers.base import Toggle
+from helpers.reporting import format_fault_report
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ cpu_count = os.cpu_count() or 0
     cpu_count < 4,
     reason="GIL contention is not significant on low-core machines; requires at least 4 cores",
 )
-def test_ml_cpu_contention_detection(toogle: Toogle) -> None:
+def test_ml_cpu_contention_detection(toggle: Toggle) -> None:
     """
     Verifies throughput degradation caused by oversubscribed CPU-bound workers.
 
@@ -30,7 +30,7 @@ def test_ml_cpu_contention_detection(toogle: Toogle) -> None:
     - In BUGGY mode: too many concurrent workers oversubscribe the CPU;
       execution approaches the fully-serial duration.
     """
-    engine = MLBatchScoringEngine(toogle)
+    engine = MLBatchScoringEngine(toggle)
     cpu_count = engine.cpu_count
 
     target_single_task_seconds = 0.2
@@ -60,7 +60,7 @@ def test_ml_cpu_contention_detection(toogle: Toogle) -> None:
 
     contention_detected = duration >= threshold_seconds
 
-    if toogle.is_buggy:
+    if toggle.is_buggy:
         assert contention_detected, (
             f"Expected CPU contention, but execution finished in {duration:.3f}s "
             f"(threshold: {threshold_seconds:.3f}s)"
@@ -75,7 +75,7 @@ def test_ml_cpu_contention_detection(toogle: Toogle) -> None:
 
     report = format_fault_report(
         title="FAULT DETECTION REPORT: CPU CONTENTION",
-        mode=toogle.get_mode().value.upper(),
+        mode=toggle.get_mode().value.upper(),
         fields={
             "CPU Cores": cpu_count,
             "Scheduled Tasks": num_tasks,

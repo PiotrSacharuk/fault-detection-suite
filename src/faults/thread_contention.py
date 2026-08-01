@@ -2,7 +2,7 @@ import threading
 import time
 from typing import Any, Dict
 
-from faults.base import Toogle
+from helpers.base import Toggle
 
 
 class MLInferenceCache:
@@ -15,8 +15,8 @@ class MLInferenceCache:
     computation outside critical sections.
     """
 
-    def __init__(self, toogle: Toogle, num_shards: int = 16) -> None:
-        self.toogle = toogle
+    def __init__(self, toggle: Toggle, num_shards: int = 16) -> None:
+        self.toggle = toggle
         self.cache: Dict[str, Any] = {}
         self._global_lock = threading.Lock()
         self._num_shards = num_shards
@@ -31,7 +31,7 @@ class MLInferenceCache:
         """
         Retrieves a feature from cache or computes it if missing
         """
-        if self.toogle.is_buggy:
+        if self.toggle.is_buggy:
             # BUGGY: Coarse-grained locking. Holds the global lock WHILE performing compute.
             with self._global_lock:
                 if feature_key not in self.cache:
