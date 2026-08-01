@@ -23,7 +23,7 @@ def test_ml_cpu_contention_detection(toogle: Toogle) -> None:
     engine = MLBatchScoringEngine(toogle)
     cpu_count = engine.cpu_count
 
-    target_single_task_seconds = 0.05
+    target_single_task_seconds = 0.2
     iterations_per_task = calibrate_iterations(target_seconds=target_single_task_seconds)
 
     num_tasks = min(max(8, cpu_count * 2), 16)

@@ -18,7 +18,7 @@ def cpu_heavy_task(iterations: int) -> float:
 
 
 def calibrate_iterations(
-    target_seconds: float = 0.05,
+    target_seconds: float = 0.2,
     probe_iterations: int = 50_000,
     executor: Optional[ProcessPoolExecutor] = None,
 ) -> int:
