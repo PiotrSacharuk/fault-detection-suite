@@ -1,6 +1,7 @@
 import os
 
 import pytest
+from conftest import LoadProfile
 
 from faults.cpu_contention import MLBatchScoringEngine, calibrate_iterations
 from helpers.base import Toggle
@@ -13,7 +14,7 @@ cpu_count = os.cpu_count() or 0
     cpu_count < 4,
     reason="GIL contention is not significant on low-core machines; requires at least 4 cores",
 )
-def test_ml_cpu_contention_detection(toggle: Toggle) -> None:
+def test_ml_cpu_contention_detection(toggle: Toggle, load_profile: LoadProfile) -> None:
     """
     Verifies throughput degradation caused by oversubscribed CPU-bound workers.
 
@@ -29,10 +30,10 @@ def test_ml_cpu_contention_detection(toggle: Toggle) -> None:
     engine = MLBatchScoringEngine(toggle)
     cpu_count = engine.cpu_count
 
-    target_single_task_seconds = 0.2
+    target_single_task_seconds = load_profile.unit_delay_seconds
     iterations_per_task = calibrate_iterations(target_seconds=target_single_task_seconds)
 
-    num_tasks = min(max(8, cpu_count * 2), 16)
+    num_tasks = load_profile.worker_count
 
     duration = engine.run_batch(
         num_tasks=num_tasks,
@@ -48,7 +49,7 @@ def test_ml_cpu_contention_detection(toggle: Toggle) -> None:
     # Threshold sits between the two baselines, closer to the serial one,
     # leaving headroom above the ideal duration to absorb scheduler/process
     # startup jitter on shared CI runners.
-    CONTENTION_THRESHOLD_POSITION = 0.4
+    CONTENTION_THRESHOLD_POSITION = load_profile.contention_sensitivity
     threshold_seconds = (
         ideal_parallel_duration
         + (fully_serial_duration - ideal_parallel_duration) * CONTENTION_THRESHOLD_POSITION

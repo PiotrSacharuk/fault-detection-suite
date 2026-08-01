@@ -28,6 +28,9 @@ class LoadProfile:
     lock_timeout_seconds: float = 0.2  # max wait for a single lock.acquire()
     execution_timeout_seconds: float = 10.0  # max wait for a worker's .result()
     concurrency_limit: int = 4  # max concurrent I/O operations (for I/O contention test)
+    contention_sensitivity: float = (
+        0.4  # multiplier for contention threshold (for CPU contention test)
+    )
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -41,6 +44,7 @@ def pytest_addoption(parser: Parser) -> None:
     --lock-timeout: Maximum time to wait for locks in seconds.
     --execution-timeout: Maximum time to wait for the entire test execution before timing out in
     --concurrency-limit: Maximum number of concurrent I/O operations (for I/O contention test).
+    --contention-sensitivity: Multiplier for contention threshold (for CPU contention test).
     """
     parser.addoption(
         "--fault-mode",
@@ -106,6 +110,14 @@ def pytest_addoption(parser: Parser) -> None:
         help="Maximum number of concurrent I/O operations (for I/O contention test) (default: 4).",
     )
 
+    parser.addoption(
+        "--contention-sensitivity",
+        action="store",
+        type=float,
+        default=0.4,
+        help="Multiplier for contention threshold (for CPU contention test) (default: 0.4).",
+    )
+
 
 def pytest_generate_tests(metafunc: Metafunc) -> None:
     """
@@ -146,6 +158,7 @@ def load_profile(request: pytest.FixtureRequest) -> LoadProfile:
         lock_timeout_seconds=opt.lock_timeout,
         execution_timeout_seconds=opt.execution_timeout,
         concurrency_limit=opt.concurrency_limit,
+        contention_sensitivity=opt.contention_sensitivity,
     )
 
 
