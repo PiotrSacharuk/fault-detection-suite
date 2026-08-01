@@ -38,6 +38,7 @@ jobs:
 
       - name: Run tests
         run: |
+          set -o pipefail
           pytest --fault-mode=${{ matrix.fault-mode }} | tee pytest_output.log
 
       - name: Publish Fault Detection Report to Job Summary
