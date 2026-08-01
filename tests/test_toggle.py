@@ -24,6 +24,10 @@ def test_toggle_initialization_and_validation() -> None:
 
 
 def test_automatic_mode_injection(toggle: Toggle) -> None:
+    """
+    Test that the toggle fixture correctly injects the specified fault detection mode.
+    This test verifies that the toggle fixture provides a Toggle instance with the expected mode.
+    """
     if toggle.is_fixed:
         assert toggle.get_mode() == FaultDetectionMode.FIXED
     elif toggle.is_buggy:
