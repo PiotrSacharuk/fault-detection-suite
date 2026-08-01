@@ -15,7 +15,7 @@ The project intentionally provides two implementations of the same code path:
 | --- | --- | --- | --- | --- | --- |
 | Race condition | Parallel ML feature-metrics aggregation | Unsynchronized writes to shared mutable state | Lost updates and corrupted aggregate counts | Concurrent worker load with deterministic scheduling window; data-integrity assertions | Implemented |
 | Deadlock | ML training pipeline acquiring GPU buffer and disk cache locks | Inconsistent lock acquisition ordering across worker types (circular wait) | Lock timeouts; incomplete task processing under concurrent load | Timeout-based lock acquisition with success-count assertions | Implemented |
-| Thread contention | Planned | Planned | Planned | Latency / throughput benchmark | Planned |
+| Thread contention | High-throughput ML inference feature cache | Coarse-grained lock held during heavy computation (hot lock) | Severe thread serialization; execution time close to fully sequential baseline | Wall-clock duration benchmark against serialized vs. parallel baselines | Implemented |
 | I/O contention | Planned | Planned | Planned | Latency / throughput benchmark | Planned |
 | CPU contention | Planned | Planned | Planned | Throughput benchmark | Planned |
 
@@ -74,6 +74,35 @@ Fault Status        : DETECTED (Circular wait confirmed)
 As with the race-condition scenario, `PASSED` means the harness correctly
 verified the expected behaviour for the selected mode — it does not mean
 BUGGY mode is healthy.
+
+## Thread Contention Scenario
+
+`MLInferenceCache` models a feature cache used by an ML inference service
+under heavy concurrent load from multiple worker threads.
+
+In **BUGGY** mode, a single lock is held for the entire duration of the
+simulated computation (`time.sleep`), forcing all worker threads to execute
+sequentially regardless of which feature key they are computing. This is a
+classic "hot lock" that serializes otherwise independent work.
+
+In **FIXED** mode, the lock is released before the expensive computation
+runs, and the cache is split into several independent shards (lock striping),
+so threads working on different keys never block each other.
+
+Example BUGGY-mode output:
+
+```text
+Concurrent Workers      : 10
+Total Execution Duration: 0.987s
+Contention Threshold    : 0.550s
+Lock Contention Severity: PRESENT
+Test Result             : PASSED
+Fault Status            : DETECTED (Thread contention verified)
+```
+
+As with the other scenarios, `PASSED` means the harness correctly verified
+the expected behaviour for the selected mode — it does not mean BUGGY mode
+is healthy.
 
 ## Requirements
 
@@ -177,11 +206,13 @@ runs the automated test matrix.
 │       ├── base.py                # FaultDetectionMode and Toogle
 │       ├── deadlock.py            # ML optimizer pipeline deadlock scenario
 │       ├── race_condition.py      # ML metrics collector fault scenario
+│       ├── thread_contention.py   # ML inference cache thread contention scenario
 │       └── reporting.py           # Shared fault-detection report formatting
 ├── tests/
 │   ├── conftest.py                # CLI option, parametrization, fixtures, reporting hooks
 │   ├── test_deadlock.py           # Deadlock detection test
 │   ├── test_race_condition.py     # Race-condition detection test
+│   ├── test_thread_contention.py  # Thread contention detection test
 │   ├── test_sanity.py             # Environment validation
 │   └── test_toogle.py             # Toogle tests
 ├── requirements.txt
