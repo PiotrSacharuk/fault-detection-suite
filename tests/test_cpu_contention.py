@@ -42,8 +42,10 @@ def test_ml_cpu_contention_detection(toogle: Toogle) -> None:
     # Threshold sits between the two baselines, closer to the serial one,
     # leaving headroom above the ideal duration to absorb scheduler/process
     # startup jitter on shared CI runners.
+    CONTENTION_THRESHOLD_POSITION = 0.4
     threshold_seconds = (
-        ideal_parallel_duration + (fully_serial_duration - ideal_parallel_duration) * 0.4
+        ideal_parallel_duration
+        + (fully_serial_duration - ideal_parallel_duration) * CONTENTION_THRESHOLD_POSITION
     )
 
     contention_detected = duration >= threshold_seconds
