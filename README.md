@@ -237,6 +237,35 @@ that would be unrelated to the code under test.
   scenario is skipped on runners with fewer cores — see
   [CPU Contention Scenario](#cpu-contention-scenario))
 
+## Quick Start
+
+Use the wrapper script for the fastest path. It automatically bootstraps the virtual environment, installs the required test dependencies if needed, and forwards all remaining arguments to `pytest`.
+
+```bash
+./run-pytest.sh
+```
+
+If you want to see supported project-specific options and examples, run:
+
+```bash
+./run-pytest.sh --help
+```
+
+Common examples:
+
+```bash
+./run-pytest.sh --fault-mode=fixed
+./run-pytest.sh --fault-mode=buggy
+./run-pytest.sh --fault-mode=buggy --count=50 tests/test_race_condition.py
+./run-pytest.sh --fault-mode=buggy --log-cli-level=INFO
+```
+
+For a full development setup with linting and Git hooks, use:
+
+```bash
+./bootstrap-dev.sh
+```
+
 ## Setup
 
 Create and activate a virtual environment:
@@ -398,7 +427,10 @@ runs the automated test matrix.
 │   ├── test_sanity.py             # Environment validation
 │   ├── test_thread_contention.py  # Thread contention detection test
 │   └── test_toggle.py             # Toggle tests
-├── requirements.txt
+├── bootstrap-dev.sh               # Full development bootstrap (venv + dev deps + pre-commit)
+├── run-pytest.sh                  # Lightweight test runner (venv + test deps + pytest)
+├── requirements.txt               # Minimal test dependencies
+├── requirements-dev.txt           # Developer tooling
 ├── pyproject.toml
 └── README.md
 ```

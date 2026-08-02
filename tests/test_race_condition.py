@@ -10,7 +10,7 @@ from helpers.reporting import assert_fault_detected
 def test_ml_feature_collector_race_condition(toggle: Toggle, load_profile: LoadProfile) -> None:
     """
     Test verifying the resilience of MLFeatureMetricsCollector against race conditions
-    during parallel data extraction from 20 workers.
+    during parallel data extraction from <worker count> workers.
     """
     collector = MLFeatureMetricsCollector(toggle)
 
