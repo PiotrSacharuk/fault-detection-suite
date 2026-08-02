@@ -280,6 +280,12 @@ Show the detailed fault-detection logs in the terminal:
 pytest --fault-mode=buggy --log-cli-level=INFO
 ```
 
+## Test Timeouts
+
+The suite uses `pytest-timeout` to enforce a global per-test timeout across all scenarios. This protects CI from hanging tests and guarantees that no single test can block the pipeline indefinitely.
+
+The default timeout is configured in `pyproject.toml`, and individual tests may override it with `@pytest.mark.timeout(...)` when a shorter limit is needed for deadlock or failure-injection scenarios.
+
 ## Scaling Test Load
 
 Every fault-detection test accepts a shared `load_profile` fixture, built
