@@ -280,6 +280,16 @@ Show the detailed fault-detection logs in the terminal:
 pytest --fault-mode=buggy --log-cli-level=INFO
 ```
 
+Run flakiness stress-tests (requires `pytest-repeat`):
+
+```bash
+# Repeat a single scenario 50 times in BUGGY mode
+pytest --fault-mode=buggy --count=50 tests/test_cpu_contention.py
+
+# Repeat the entire suite 50 times in FIXED mode
+pytest --fault-mode=fixed --count=50
+```
+
 ## Test Timeouts
 
 The suite uses `pytest-timeout` to enforce a global per-test timeout across all scenarios. This protects CI from hanging tests and guarantees that no single test can block the pipeline indefinitely.
