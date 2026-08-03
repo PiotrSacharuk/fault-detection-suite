@@ -44,15 +44,23 @@ reproducible under concurrent load.
 In **FIXED** mode, `threading.Lock` protects the shared aggregation state.
 All expected samples must be recorded.
 
-Example BUGGY-mode output:
+Example BUGGY-mode output (current unified report format):
 
 ```text
-Execution Mode    : BUGGY
-Expected Samples  : 10000
-Processed Samples : 1400
-Lost Samples      : 8600 (86.00% loss)
-Test Result       : PASSED (Data corruption detected)
-Fault Status      : DETECTED (Data corruption verified)
+REPORT_START
+================================================================
+             FAULT DETECTION REPORT: RACE CONDITION
+================================================================
+ Execution Mode : BUGGY
+ Total Workers     : 20
+ Expected Samples  : 10000
+ Processed Samples : 1450
+ Lost Samples      : 8550 (85.50% loss)
+----------------------------------------------------------------
+ Test Result    : PASSED
+ Fault Status   : DETECTED
+================================================================
+REPORT_END
 ```
 
 `PASSED` means that the test harness correctly verified the expected behavior
@@ -71,16 +79,23 @@ hanging indefinitely, contending threads fail to complete their batch.
 In **FIXED** mode, both workers acquire locks in a globally deterministic
 order (`sorted(locks, key=id)`), eliminating the circular wait entirely.
 
-Example BUGGY-mode output:
+Example BUGGY-mode output (current unified report format):
 
 ```text
-Execution Mode      : BUGGY
-Total Tasks         : 20
-Worker 1 (Training) : 1/10
-Worker 2 (Prefetch) : 1/10
-Total Completed     : 2/20
-Test Result         : PASSED (Deadlock detected)
-Fault Status        : DETECTED (Circular wait confirmed)
+REPORT_START
+================================================================
+                FAULT DETECTION REPORT: DEADLOCK
+================================================================
+ Execution Mode : BUGGY
+ Total Tasks       : 200
+ Worker 1 (Training): 11/100
+ Worker 2 (Prefetch): 0/100
+ Total Completed   : 11/200
+----------------------------------------------------------------
+ Test Result    : PASSED
+ Fault Status   : DETECTED
+================================================================
+REPORT_END
 ```
 
 As with the race-condition scenario, `PASSED` means the harness correctly
@@ -101,15 +116,22 @@ In **FIXED** mode, the lock is released before the expensive computation
 runs, and the cache is split into several independent shards (lock striping),
 so threads working on different keys never block each other.
 
-Example BUGGY-mode output:
+Example BUGGY-mode output (current unified report format):
 
 ```text
-Concurrent Workers      : 10
-Total Execution Duration: 0.987s
-Contention Threshold    : 0.550s
-Lock Contention Severity: PRESENT
-Test Result             : PASSED
-Fault Status            : DETECTED (Thread contention verified)
+REPORT_START
+================================================================
+           FAULT DETECTION REPORT: THREAD CONTENTION
+================================================================
+ Execution Mode : BUGGY
+ Concurrent Workers: 20
+ Total Execution Duration: 4.189s
+ Contention Threshold: 2.100s
+----------------------------------------------------------------
+ Test Result    : PASSED
+ Fault Status   : DETECTED
+================================================================
+REPORT_END
 ```
 
 As with the other scenarios, `PASSED` means the harness correctly verified
@@ -131,16 +153,23 @@ In **FIXED** mode, concurrent I/O access is bounded via a semaphore
 (connection pool), keeping per-request latency stable regardless of how
 many worker threads are active.
 
-Example BUGGY-mode output:
+Example BUGGY-mode output (current unified report format):
 
 ```text
-Concurrent Workers      : 20
-Average Latency         : 0.3827s
-P95 Latency             : 0.4219s
-Latency Threshold       : 0.1000s
-I/O Contention Severity : DETECTED
-Test Result             : PASSED
-Fault Status            : DETECTED (I/O contention verified)
+REPORT_START
+================================================================
+             FAULT DETECTION REPORT: I/O CONTENTION
+================================================================
+ Execution Mode : BUGGY
+ Concurrent Workers: 20
+ Average Latency   : 0.4024s
+ P95 Latency       : 0.4244s
+ Latency Threshold : 0.1000s
+----------------------------------------------------------------
+ Test Result    : PASSED
+ Fault Status   : DETECTED
+================================================================
+REPORT_END
 ```
 
 As with the other scenarios, `PASSED` means the harness correctly verified
@@ -166,18 +195,24 @@ A single task's duration is calibrated at runtime against the current
 machine, so the detection threshold scales correctly across CI runners with
 different CPU speeds.
 
-Example BUGGY-mode output:
+Example BUGGY-mode output (current unified report format):
 
 ```text
-Execution Mode          : BUGGY
-CPU Cores               : 8
-Scheduled Tasks         : 32
-Iterations Per Task     : 512340
-Execution Duration      : 3.974s
-Duration Threshold      : 3.040s
-CPU Contention Severity : DETECTED
-Test Result             : PASSED
-Fault Status            : DETECTED (CPU contention verified)
+REPORT_START
+================================================================
+             FAULT DETECTION REPORT: CPU CONTENTION
+================================================================
+ Execution Mode : BUGGY
+ CPU Cores         : 8
+ Scheduled Tasks   : 20
+ Iterations Per Task: 26980
+ Execution Duration: 0.255s
+ Duration Threshold: 0.190s
+----------------------------------------------------------------
+ Test Result    : PASSED
+ Fault Status   : DETECTED
+================================================================
+REPORT_END
 ```
 
 As with the other scenarios, `PASSED` means the harness correctly verified
