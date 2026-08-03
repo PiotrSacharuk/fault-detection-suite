@@ -1,4 +1,5 @@
 import os
+import sysconfig
 
 import pytest
 from conftest import LoadProfile
@@ -11,9 +12,10 @@ cpu_count = os.cpu_count() or 0
 
 
 @pytest.mark.skipif(
-    cpu_count < 8,
-    reason="GIL contention is not significant on low-core machines; requires at least 4 cores",
+    bool(sysconfig.get_config_var("Py_GIL_DISABLED")),
+    reason="GIL contention fault is only meaningful on a GIL-enabled interpreter build",
 )
+@pytest.mark.skipif(cpu_count < 4, reason="requires at least 4 cores")
 @pytest.mark.flaky(reruns=3)
 def test_ml_cpu_contention_detection(toggle: Toggle, load_profile: LoadProfile) -> None:
     """
