@@ -221,22 +221,32 @@ is healthy.
 
 ### Minimum core requirement
 
-This scenario is automatically skipped when fewer than 8 CPU cores are
-available (`os.cpu_count() < 8`).
-TODO: check what changed in Python 3.14 regarding GIL contention and whether the minimum core requirement can be lowered to 4 cores.
+This scenario is automatically skipped when fewer than 4 CPU cores are
+available (os.cpu_count() < 4), and on free-threaded (--disable-gil,
+python3.14t) interpreter builds, detected via
+sysconfig.get_config_var("Py_GIL_DISABLED").
 
-GIL contention is a genuine effect, but its measurable impact scales with
-the ratio of oversubscribed threads to CPU cores. On 2-core runners, the
-absolute wall-clock difference between GIL-serialized (BUGGY) and truly
-parallel (FIXED) execution is small enough that scheduler noise, cgroup CPU
-throttling, and shared-infrastructure contention on CI runners regularly
-push the measurement across the detection threshold in either direction —
-producing both false positives and false negatives independent of any
-threshold tuning attempted. Widening thresholds or increasing per-task
-workload size does not resolve this, because the *relative* slowdown
-between BUGGY and FIXED stays roughly constant; the limiting factor is
-insufficient absolute timing margin at low core counts, not insufficient
-GIL-yielding opportunities.
+The core-count threshold was previously set to 8, based on the assumption
+that GIL contention needed a large core-to-thread ratio to produce a
+reliably measurable slowdown. Investigation into flaky results on Python
+3.14 runners showed the actual instability came from a different source:
+the single-task duration used to build the detection threshold was always
+calibrated through a throw-away ProcessPoolExecutor, even for the BUGGY
+(thread-based) path. Since threads share memory and pay no
+pickling/IPC cost, this inflated the reference "serial" baseline with a
+cost the threaded execution never actually incurs — a mismatch that grew
+large enough on Python 3.14 (faster interpreter, different default
+multiprocessing start method) to push genuine GIL contention below the
+detection threshold.
+
+With calibration now performed through the same, already warmed-up
+executor that runs the batch (threads for BUGGY, processes for FIXED), the
+reference baseline matches the real cost model of each path, and the
+4-core threshold is sufficient to detect contention reliably. The
+multiprocessing start method used by ProcessPoolExecutor is also pinned
+explicitly to "spawn", so behavior no longer depends on the platform/
+version default (which changed from fork to forkserver on Linux in
+Python 3.14).
 
 Skipped runs are reported explicitly (not silently ignored) so CI visibility
 is preserved.
@@ -260,18 +270,18 @@ sensitive to genuine contention. This keeps the suite stable across different
 runners without masking real regressions.
 
 The `test_ml_cpu_contention_detection` check is skipped on machines with fewer
-than 4 CPU cores because the GIL-related slowdown is too small and too
-sensitive to environment noise to be measured reliably at low core counts.
-Skipping preserves signal quality and avoids false positives or false negatives
-that would be unrelated to the code under test.
+than 4 CPU cores, and on free-threaded (no-GIL) interpreter builds, because in
+both cases the GIL-related slowdown is either too small to measure reliably or
+not applicable at all. Skipping preserves signal quality and avoids false
+positives or false negatives that would be unrelated to the code under test.
 
 ## Requirements
 
-- Python 3.10, 3.11, 3.12, or 3.13
+- Python 3.10, 3.11, 3.12, 3.13 or 3.14
 - `pip`
 - 4+ CPU cores recommended for full scenario coverage (the CPU contention
-  scenario is skipped on runners with fewer cores — see
-  [CPU Contention Scenario](#cpu-contention-scenario))
+  scenario is skipped on runners with fewer cores, or on free-threaded
+  interpreter builds — see [CPU Contention Scenario](#cpu-contention-scenario))
 
 ## Quick Start
 
