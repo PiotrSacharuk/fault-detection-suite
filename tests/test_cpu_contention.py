@@ -4,7 +4,7 @@ import sysconfig
 import pytest
 from conftest import LoadProfile
 
-from faults.cpu_contention import MLBatchScoringEngine, calibrate_iterations
+from faults.cpu_contention import MLBatchScoringEngine
 from helpers.base import Toggle
 from helpers.reporting import assert_fault_detected
 
@@ -34,13 +34,11 @@ def test_ml_cpu_contention_detection(toggle: Toggle, load_profile: LoadProfile) 
     cpu_count = engine.cpu_count
 
     target_single_task_seconds = load_profile.unit_delay_seconds
-    iterations_per_task = calibrate_iterations(target_seconds=target_single_task_seconds)
-
     num_tasks = load_profile.worker_count
 
-    duration = engine.run_batch(
+    iterations_per_task, duration = engine.run_batch(
         num_tasks=num_tasks,
-        iterations_per_task=iterations_per_task,
+        target_single_task_seconds=target_single_task_seconds,
     )
 
     # Expected baselines, derived from the calibrated single-task duration:
