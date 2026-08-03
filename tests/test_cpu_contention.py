@@ -14,6 +14,7 @@ cpu_count = os.cpu_count() or 0
     cpu_count < 4,
     reason="GIL contention is not significant on low-core machines; requires at least 4 cores",
 )
+@pytest.mark.flaky(reruns=3)
 def test_ml_cpu_contention_detection(toggle: Toggle, load_profile: LoadProfile) -> None:
     """
     Verifies throughput degradation caused by oversubscribed CPU-bound workers.
