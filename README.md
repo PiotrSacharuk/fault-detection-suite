@@ -221,8 +221,9 @@ is healthy.
 
 ### Minimum core requirement
 
-This scenario is automatically skipped when fewer than 4 CPU cores are
-available (`os.cpu_count() < 4`).
+This scenario is automatically skipped when fewer than 8 CPU cores are
+available (`os.cpu_count() < 8`).
+TODO: check what changed in Python 3.14 regarding GIL contention and whether the minimum core requirement can be lowered to 4 cores.
 
 GIL contention is a genuine effect, but its measurable impact scales with
 the ratio of oversubscribed threads to CPU cores. On 2-core runners, the
