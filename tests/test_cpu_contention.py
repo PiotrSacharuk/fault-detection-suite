@@ -1,9 +1,10 @@
 import os
+import sysconfig
 
 import pytest
 from conftest import LoadProfile
 
-from faults.cpu_contention import MLBatchScoringEngine, calibrate_iterations
+from faults.cpu_contention import MLBatchScoringEngine
 from helpers.base import Toggle
 from helpers.reporting import assert_fault_detected
 
@@ -11,9 +12,10 @@ cpu_count = os.cpu_count() or 0
 
 
 @pytest.mark.skipif(
-    cpu_count < 8,
-    reason="GIL contention is not significant on low-core machines; requires at least 4 cores",
+    bool(sysconfig.get_config_var("Py_GIL_DISABLED")),
+    reason="GIL contention fault is only meaningful on a GIL-enabled interpreter build",
 )
+@pytest.mark.skipif(cpu_count < 4, reason="requires at least 4 cores")
 @pytest.mark.flaky(reruns=3)
 def test_ml_cpu_contention_detection(toggle: Toggle, load_profile: LoadProfile) -> None:
     """
@@ -32,13 +34,11 @@ def test_ml_cpu_contention_detection(toggle: Toggle, load_profile: LoadProfile) 
     cpu_count = engine.cpu_count
 
     target_single_task_seconds = load_profile.unit_delay_seconds
-    iterations_per_task = calibrate_iterations(target_seconds=target_single_task_seconds)
-
     num_tasks = load_profile.worker_count
 
-    duration = engine.run_batch(
+    iterations_per_task, duration = engine.run_batch(
         num_tasks=num_tasks,
-        iterations_per_task=iterations_per_task,
+        target_single_task_seconds=target_single_task_seconds,
     )
 
     # Expected baselines, derived from the calibrated single-task duration:
