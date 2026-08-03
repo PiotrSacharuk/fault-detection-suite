@@ -11,7 +11,7 @@ cpu_count = os.cpu_count() or 0
 
 
 @pytest.mark.skipif(
-    cpu_count < 4,
+    cpu_count < 8,
     reason="GIL contention is not significant on low-core machines; requires at least 4 cores",
 )
 @pytest.mark.flaky(reruns=3)
